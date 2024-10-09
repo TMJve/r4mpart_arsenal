@@ -4,14 +4,33 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"time"
 )
+
+func spinner(done chan bool) {
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			for _, r := range `-\|/` {
+				fmt.Printf("\r%c", r)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
+}
 
 // EnumerateSubdomains performs subdomain enumeration on the target
 func EnumerateSubdomains(target string, useHttpx bool) {
 	fmt.Printf("[INFO] Enumerating subdomains for: %s\n", target)
-	// Logic for subdomain enumeration (e.g., API calls to Amass, Subfinder, etc.)
+
+	done := make(chan bool)
+	go spinner(done)
+
 	_, err := exec.LookPath("subfinder")
 	if err != nil {
+		done <- true
 		fmt.Println("[ERROR] Subfinder is not installed, Please install it by running: go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest")
 		return
 	}
@@ -19,6 +38,7 @@ func EnumerateSubdomains(target string, useHttpx bool) {
 	subfinderCmd := exec.Command("subfinder", "-d", target, "=silent")
 	subfinderOutput, err := subfinderCmd.Output()
 	if err != nil {
+		done <- true
 		fmt.Printf("[ERROR Subfinder failed: %v\n]", err)
 		return
 	}
@@ -37,11 +57,16 @@ func EnumerateSubdomains(target string, useHttpx bool) {
 
 		httpxOutput, err := httpxCmd.Output()
 		if err != nil {
+			done <- true
 			fmt.Printf("[ERROR] httpx failed: %v\n", err)
 			return
 		}
+
+		done <- true
 		fmt.Printf("[INFO] Reachable subdomains:\n%s\n", string(httpxOutput))
 	} else {
+
+		done <- true
 		fmt.Printf("[INFO] Subdomains found:\n%s\n", string(subfinderOutput))
 	}
 }
@@ -49,23 +74,22 @@ func EnumerateSubdomains(target string, useHttpx bool) {
 // ScanPorts performs port scanning on the target
 func ScanPorts(target string, portRange string) {
 	fmt.Printf("[INFO] Scanning ports for: %s in range %s\n", target, portRange)
-	// Logic for port scanning (e.g., using Nmap or custom logic)
 }
 
 // LookupDNS performs DNS lookup on the target
 func LookupDNS(target string) {
 	fmt.Printf("[INFO] Performing DNS lookup for: %s\n", target)
-	// Logic for DNS lookup (e.g., resolving DNS records)
+
 }
 
 // PerformWhois performs WHOIS lookup on the target
 func PerformWhois(target string) {
 	fmt.Printf("[INFO] Performing WHOIS lookup for: %s\n", target)
-	// Logic for WHOIS lookup (e.g., querying WHOIS databases)
+
 }
 
 // AnalyzeSSL performs SSL certificate analysis on the target
 func AnalyzeSSL(target string) {
 	fmt.Printf("[INFO] Analyzing SSL certificate for: %s\n", target)
-	// Logic for SSL certificate analysis (e.g., checking expiration, CA, etc.)
+
 }
