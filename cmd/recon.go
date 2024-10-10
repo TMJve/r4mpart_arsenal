@@ -14,6 +14,8 @@ var whois bool
 var ssl bool
 var portRange string
 var useHttpx bool
+var active bool
+var wordlistPath string
 
 var reconCmd = &cobra.Command{
 	Use:   "recon [target]",
@@ -27,7 +29,13 @@ var reconCmd = &cobra.Command{
 		fmt.Printf("Performing reconnaissance on: %s\n", target)
 
 		if subdomains {
-			recon.EnumerateSubdomains(target, useHttpx)
+			if active {
+				fmt.Printf("[INFO] Running active subdomain enumeration on: %s\n", target)
+				recon.ActiveDNSEnumeration(target, wordlistPath) // Custom active script
+			} else {
+				fmt.Printf("[INFO] Running passive subdomain enumeration on: %s\n", target)
+				recon.EnumerateSubdomains(target, useHttpx)
+			}
 		}
 		if ports {
 			if portRange == "" {
@@ -56,6 +64,8 @@ func init() {
 	rootCmd.AddCommand(reconCmd)
 
 	reconCmd.Flags().BoolVarP(&subdomains, "subdomains", "s", false, "Perform subdomain enumeration")
+	reconCmd.Flags().BoolVarP(&active, "active", "a", false, "Trigger active DNS enumeration")
+	reconCmd.Flags().StringVarP(&wordlistPath, "wordlist", "W", "", "Path to wordlist for brute-forcing subdomains")
 	reconCmd.Flags().BoolVarP(&ports, "ports", "p", false, "Perform port scanning")
 	reconCmd.Flags().BoolVarP(&dns, "dns", "d", false, "Perform DNS lookup")
 	reconCmd.Flags().BoolVarP(&whois, "whois", "w", false, "Perform WHOIS lookup")

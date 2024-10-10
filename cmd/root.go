@@ -9,7 +9,7 @@ import (
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
-	Use:   "r4mpart_arsenal",
+	Use:   "r4mpartArsenal",
 	Short: "R4mpart Arsenal is a CLI for web application pentesting and bug bounty",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Use raw string literals for ASCII art
