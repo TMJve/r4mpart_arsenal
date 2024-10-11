@@ -7,6 +7,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -185,8 +188,74 @@ func LookupCNAME(domain string) (string, error) {
 }
 
 // ScanPorts performs port scanning on the target
-func ScanPorts(target string, portRange string) {
+func ScanPorts(target, portRange string) {
 	fmt.Printf("[INFO] Scanning ports for: %s in range %s\n", target, portRange)
+
+	// Parse the port range
+	ports := parsePortRange(portRange)
+
+	// WaitGroup to wait for all Goroutines to finish
+	var wg sync.WaitGroup
+
+	// Scan each port in the range concurrently
+	for _, port := range ports {
+		wg.Add(1)
+
+		go func(port int) {
+			defer wg.Done()
+			scanPort(target, port)
+		}(port)
+	}
+
+	// Wait for all Goroutines to complete
+	wg.Wait()
+}
+
+// scanPort checks if a port is open or closed on the target
+func scanPort(target string, port int) {
+	address := fmt.Sprintf("%s:%d", target, port)
+	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+
+	if err != nil {
+		fmt.Printf("[CLOSED] Port %d is closed on %s\n", port, target)
+		return
+	}
+	defer conn.Close()
+
+	// Perform banner grabbing
+	banner := make([]byte, 1024)
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second)) // Set a deadline for reading
+	_, err = conn.Read(banner)
+	if err != nil {
+		fmt.Printf("[OPEN] Port %d is open on %s but no banner was retrieved.\n", port, target)
+	} else {
+		fmt.Printf("[OPEN] Port %d is open on %s - Banner: %s\n", port, target, strings.TrimSpace(string(banner)))
+	}
+}
+
+func parsePortRange(portRange string) []int {
+	var ports []int
+	if strings.Contains(portRange, "-") {
+		parts := strings.Split(portRange, "-")
+		start, _ := strconv.Atoi(parts[0])
+		end, _ := strconv.Atoi(parts[1])
+
+		for i := start; i <= end; i++ {
+			ports = append(ports, i)
+		}
+	} else if strings.Contains(portRange, ",") {
+		parts := strings.Split(portRange, ",")
+		for _, part := range parts {
+			port, _ := strconv.Atoi(part)
+			ports = append(ports, port)
+		}
+	} else {
+		// Single port case
+		port, _ := strconv.Atoi(portRange)
+		ports = append(ports, port)
+	}
+
+	return ports
 }
 
 // LookupDNS performs DNS lookup on the target

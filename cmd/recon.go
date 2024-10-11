@@ -37,6 +37,7 @@ var reconCmd = &cobra.Command{
 				recon.EnumerateSubdomains(target, useHttpx)
 			}
 		}
+
 		if ports {
 			if portRange == "" {
 				recon.ScanPorts(target, "1-1024")
